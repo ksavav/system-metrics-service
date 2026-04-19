@@ -9,7 +9,7 @@ class GpuNvidia(XpuInterface):
         super().__init__(*args, **kwargs)
         try:
             pynvml.nvmlInit()
-        except Exception as e:
+        except pynvml.NVMLError as e:
             log.error(f"Use docker-compose with NVIDIA runtime to enable GPU monitoring: {e}")
 
 
