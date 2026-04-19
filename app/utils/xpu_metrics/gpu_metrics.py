@@ -3,10 +3,11 @@ from collections import defaultdict
 from pathlib import Path
 
 from utils.logger import log
-from .xpu_interface import XpuInterface
+
+from .gpu_drivers.gpu_i915 import Gpui915
 from .gpu_drivers.gpu_nvidia import GpuNvidia
 from .gpu_drivers.gpu_xe import GpuXe
-from .gpu_drivers.gpu_i915 import Gpui915
+from .xpu_interface import XpuInterface
 
 
 class GpuMetrics(XpuInterface):
@@ -39,7 +40,7 @@ class GpuMetrics(XpuInterface):
                 instance = self._driver_instances[driver]
                 self.utilization_data["gpu"].append(instance._get_gpu_usage())
             else:
-                log.warning(f"Unsupported GPU driver '{driver}' for card '{card}'. Skipping utilization collection.")
+                log.warning(f"Unsupported GPU driver '{driver}' for card '{card}'.")
 
 
     def _get_gpu_usage(self):

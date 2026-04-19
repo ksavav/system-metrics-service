@@ -12,7 +12,25 @@ dependencies = [
 ]
 
 [tool.ruff]
+line-length = 100
+indent-width = 4
 lint.extend-select = [
+    "F",
+    "W",
+    "E",
+    "I",
+    "UP",
+    "C4",
+    "FA",
+    "ISC",
+    "ICN",
+    "RET",
+    "SIM",
+    "TID",
+    "TC",
     "PTH",
+    "TD",
+    "NPY",
+    "BLE",
     "FAST",
 ]

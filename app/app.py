@@ -1,9 +1,9 @@
 from fastapi import FastAPI
+
 from utils.config import get_config
 from utils.xpu_metrics.cpu_metrics import CpuMetrics
 from utils.xpu_metrics.gpu_metrics import GpuMetrics
 from utils.xpu_metrics.npu_metrics import NpuMetrics
-
 
 app = FastAPI()
 

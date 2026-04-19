@@ -3,6 +3,7 @@ import time
 import psutil
 
 from utils.logger import log
+
 from .xpu_interface import XpuInterface
 
 
