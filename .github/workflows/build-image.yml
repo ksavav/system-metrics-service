@@ -13,7 +13,8 @@ on:
       push-image:
         description: 'Whether to push the image to the registry (true/false)'
         required: false
-        default: 'false'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -50,5 +51,5 @@ jobs:
           context: ./
           file: Dockerfile
           push: ${{ env.PUSH_IMAGE == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ env.TAG }}
           labels: ${{ steps.meta.outputs.labels }}
