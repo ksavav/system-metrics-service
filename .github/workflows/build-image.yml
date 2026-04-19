@@ -13,7 +13,8 @@ on:
       push-image:
         description: 'Whether to push the image to the registry (true/false)'
         required: false
-        default: 'false'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
