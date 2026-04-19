@@ -1,6 +1,7 @@
 import pynvml
-from utils.xpu_metrics.xpu_interface import XpuInterface
+
 from utils.logger import log
+from utils.xpu_metrics.xpu_interface import XpuInterface
 
 
 class GpuNvidia(XpuInterface):
@@ -25,3 +26,4 @@ class GpuNvidia(XpuInterface):
             utilization = util.gpu
             log.info(f"GPU Utilization: {utilization:.2f}%")
             return utilization
+        return None
