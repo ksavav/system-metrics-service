@@ -4,4 +4,6 @@ NPU
 RAM
 Disk space
 
+
 Fast api
+Grafana
