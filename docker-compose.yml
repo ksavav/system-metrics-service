@@ -13,12 +13,11 @@ services:
     networks:
       - metrics-net
     devices:
-      - /dev/accel0:/dev/accel0
-      - /dev/dri:/dev/dri
+      - /dev:/dev
     volumes:
-      - /sys/class/accel:/sys/class/accel:ro
       - /sys/class/drm:/sys/class/drm:ro
       - /sys/class/hwmon:/sys/class/hwmon:ro
+      - /proc:/proc:ro
 
 networks:
   metrics-net:
