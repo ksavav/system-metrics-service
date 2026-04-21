@@ -37,3 +37,6 @@ async def get_cpu_total_metric(prometheus_url: str):
     response = await get_prometheus_metrics(prometheus_url, promql_query)
 
     return extract_metric_value(response, "cpu", "cpu-total")
+
+async def get_gpu_usage_metric(prometheus_url: str):
+    pass
