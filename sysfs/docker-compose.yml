@@ -1,0 +1,25 @@
+services:
+  metrics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metrics-service
+    ports:
+      - "12345:12345"
+    env_file:
+      - .env
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - metrics-net
+    devices:
+      - /dev/accel0:/dev/accel0
+      - /dev/dri:/dev/dri
+    volumes:
+      - /sys/class/accel:/sys/class/accel:ro
+      - /sys/class/drm:/sys/class/drm:ro
+      - /sys/class/hwmon:/sys/class/hwmon:ro
+
+networks:
+  metrics-net:
+    driver: bridge

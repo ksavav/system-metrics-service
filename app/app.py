@@ -1,45 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from utils.config import get_config
-from utils.xpu_metrics.cpu_metrics import CpuMetrics
-from utils.xpu_metrics.gpu_metrics import GpuMetrics
-from utils.xpu_metrics.npu_metrics import NpuMetrics
+from utils.prometheus import get_cpu_total_metric
 
 app = FastAPI()
 
-ENABLE_CPU = get_config("ENABLE_CPU_METRICS", "true").lower() == "true"
-ENABLE_GPU = get_config("ENABLE_GPU_METRICS", "false").lower() == "true"
-ENABLE_NPU = get_config("ENABLE_NPU_METRICS", "false").lower() == "true"
+PROMETHEUS_URL = get_config("PROMETHEUS_URL")
 
-cpu_metrics = CpuMetrics() if ENABLE_CPU else None
-gpu_metrics = GpuMetrics() if ENABLE_GPU else None
-npu_metrics = NpuMetrics() if ENABLE_NPU else None
-
-
-@app.get("/usage/cpu")
-def get_cpu_usage():
-    if not cpu_metrics:
-        return {"error": "CPU metrics not enabled"}
-    cpu_metrics.get_usage()
-    return {"cpu": cpu_metrics.utilization_data["cpu"][-1]}
-
-
-@app.get("/usage/gpu")
-def get_gpu_usage():
-    if not gpu_metrics:
-        return {"error": "GPU metrics not enabled"}
-    gpu_metrics.get_usage()
-    return {"gpu": gpu_metrics.utilization_data["gpu"][-1]}
-
-
-@app.get("/usage/npu")
-def get_npu_usage():
-    if not npu_metrics:
-        return {"error": "NPU metrics not enabled"}
-    npu_metrics.get_usage()
-    return {"npu": npu_metrics.utilization_data["npu"][-1]}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=12345, reload=True)
+@app.get("/api/metrics/cpu")
+async def get_cpu_metrics():
+    """
+    Queries Prometheus for the current CPU usage system metric.
+    """
+    try:
+        cpu_metrics = await get_cpu_total_metric(PROMETHEUS_URL)
+        return {"status": "success", "data": cpu_metrics}
+    except HTTPException as e:
+        return {"status": "error", "detail": str(e.detail)}
