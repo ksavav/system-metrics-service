@@ -61,5 +61,5 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: ${{ env.PUSH_IMAGE == 'true' }}
-          tags: ${{ env.TAG }}
+          tags: ${{ matrix.image }}:${{ env.TAG }}
           labels: ${{ steps.meta.outputs.labels }}
