@@ -37,4 +37,3 @@ async def handle_api_response(api_func: callable, *args, **kwargs) -> JSONRespon
             status_code=e.status_code,
             content={"status": "error", "detail": str(e.detail)}
         )
-
