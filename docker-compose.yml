@@ -11,6 +11,8 @@ services:
       - ${TELEGRAF_CONFIG_PATH}:/etc/telegraf/telegraf.conf:ro
       - /var/run/utmp:/var/run/utmp:ro
       - /:/rootfs:ro
+      - ./scripts:/scripts
+      # - /tmp/accel:/tmp/accel:ro
     networks:
       - metrics_net
     depends_on:
