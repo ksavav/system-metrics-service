@@ -4,6 +4,9 @@ from fastapi.responses import JSONResponse
 
 
 async def async_http_request(url: str, method: str = "GET", json: dict = None, **kwargs) -> dict:
+    """
+    Makes an asynchronous HTTP request using httpx and returns the JSON response.
+    """
     async with httpx.AsyncClient() as client:
         try:
             response = await client.request(
@@ -26,6 +29,9 @@ async def async_http_request(url: str, method: str = "GET", json: dict = None, *
             )
 
 async def handle_api_response(api_func: callable, *args, **kwargs) -> JSONResponse:
+    """
+    Handles the API response by calling the provided async function and returning a JSON response.
+    """
     try:
         data = await api_func(*args, **kwargs)
         return JSONResponse(
@@ -37,4 +43,3 @@ async def handle_api_response(api_func: callable, *args, **kwargs) -> JSONRespon
             status_code=e.status_code,
             content={"status": "error", "detail": str(e.detail)}
         )
-

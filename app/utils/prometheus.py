@@ -1,5 +1,3 @@
-from statistics import mean
-
 from fastapi import HTTPException
 
 from .async_http import async_http_request
@@ -31,52 +29,25 @@ def extract_metric_value(metric_data: dict, metric_key: str, metric_name: str) -
         None
     )
 
-# CPU Metrics
-async def cpu_total_usage(prometheus_url: str) -> str:
+async def get_and_extract_metric(
+        prometheus_url: str,
+        promql_query: str,
+        metric_key: str,
+        metric_name: str
+    ) -> str:
     """
-    Queries Prometheus for the current CPU usage system metric.
+    Combines the process of querying Prometheus and extracting a specific metric value.
     """
-    promql_query = 'cpu_usage_system'
     response = await get_prometheus_metrics(prometheus_url, promql_query)
+    return extract_metric_value(response, metric_key, metric_name)
 
-    return extract_metric_value(response, "cpu", "cpu-total")
-
-# GPU Metrics
-async def gpu_memory_metrcis(prometheus_url: str) -> dict:
+async def get_and_extract_all_metrics(prometheus_url: str, promql_query: str, key: str) -> str:
     """
-    Queries Prometheus for the current GPU memory system metric.
+    Combines the process of querying Prometheus and extracting all metric values for a specific key.
     """
-    free = await get_prometheus_metrics(prometheus_url, "nvidia_smi_memory_free")
-    used = await get_prometheus_metrics(prometheus_url, "nvidia_smi_memory_used")
-    total = await get_prometheus_metrics(prometheus_url, "nvidia_smi_memory_total")
+    response = await get_prometheus_metrics(prometheus_url, promql_query)
+    data = response.get("data", {}).get("result", [])
     return {
-        "free": free.get("data", {}).get("result", []),
-        "used": used.get("data", {}).get("result", []),
-        "total": total.get("data", {}).get("result", [])
+        item.get("metric", {}).get(key): item.get("value", [None, None])[1]
+        for item in data
     }
-
-async def gpu_total_usage(prometheus_url: str) -> str:
-    """
-    Queries Prometheus for the current GPU usage system metric.
-    """
-    promql_query = 'nvidia_smi_utilization_gpu'
-    response = await get_prometheus_metrics(prometheus_url, promql_query)
-    return str(mean(
-        float(item.get("value", [None, None])[1])
-        for item in response.get("data", {}).get("result", [])
-    ))
-
-async def gpu_memory_usage(prometheus_url: str) -> str:
-    """
-    Queries Prometheus for the current GPU memory system metric.
-    """
-    promql_query = 'nvidia_smi_utilization_memory'
-    response = await get_prometheus_metrics(prometheus_url, promql_query)
-    return str(mean(
-        float(item.get("value", [None, None])[1])
-        for item in response.get("data", {}).get("result", [])
-    ))
-
-# NPU Metrics
-# Memory Metrics
-# Disk Metrics
