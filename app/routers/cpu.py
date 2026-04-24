@@ -8,9 +8,6 @@ router = APIRouter()
 
 @router.get("/metrics/cpu", tags=["cpu"])
 async def get_cpu_metrics():
-    """
-    Queries Prometheus for the current CPU usage system metric.
-    """
     return await handle_api_response(
         get_and_extract_all_metrics,
         get_config("PROMETHEUS_URL"),
@@ -20,9 +17,6 @@ async def get_cpu_metrics():
 
 @router.get("/usage/cpu", tags=["cpu"])
 async def get_cpu_total_usage():
-    """
-    Queries Prometheus for the current CPU usage system metric.
-    """
     return await handle_api_response(
         get_and_extract_metric,
         get_config("PROMETHEUS_URL"),

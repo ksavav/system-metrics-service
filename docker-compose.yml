@@ -1,8 +1,12 @@
 services:
   telegraf:
-    image: telegraf:latest
+    image: telegraf:${TELEGRAF_IMAGE_TAG:-latest}
     container_name: telegraf
     restart: unless-stopped
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},otel-collector,prometheus,system-metrics-service
     volumes:
       - ${TELEGRAF_CONFIG_PATH}:/etc/telegraf/telegraf.conf:ro
       - /var/run/utmp:/var/run/utmp:ro
@@ -13,22 +17,30 @@ services:
       - otel-collector
 
   otel-collector:
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector:${OTEL_IMAGE_TAG:-latest}
     container_name: otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},telegraf,prometheus,system-metrics-service
     volumes:
-      - ${OTEL_COLLECTOR_CONFIG_PATH}:/etc/otelcol/config.yaml:ro
+      - ${OTEL_CONFIG_PATH}:/etc/otelcol/config.yaml:ro
     ports:
-      - "${OTEL_COLLECTOR_PORT}:${OTEL_COLLECTOR_PORT}"
-      - "${OTEL_COLLECTOR_API_PORT}:${OTEL_COLLECTOR_API_PORT}"
+      - "${OTEL_PORT}:${OTEL_PORT}"
+      - "${OTEL_API_PORT}:${OTEL_API_PORT}"
     networks:
       - metrics_net
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:${PROMETHEUS_IMAGE_TAG:-latest}
     container_name: prometheus
     restart: unless-stopped
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},telegraf,otel-collector,system-metrics-service
     volumes:
       - ${PROMETHEUS_CONFIG_PATH}:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus 
@@ -40,20 +52,25 @@ services:
       - otel-collector
 
   system-metrics-service:
-    image: system-metrics-service:latest
+    image: system-metrics-service:${SMS_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
     container_name: system-metrics-service
     restart: unless-stopped
-    ports:
-      - "${SYSTEM_METRICS_SERVICE_PORT}:${SYSTEM_METRICS_SERVICE_PORT}"
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - no_proxy=${no_proxy},otel-collector,prometheus,telegraf
     env_file:
       - .env
+    ports:
+      - "${SMS_PORT}:${SMS_PORT}"
     networks:
       - metrics_net
     depends_on:
       - prometheus
+      - telegraf
 
 volumes:
   prometheus_data:

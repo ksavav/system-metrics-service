@@ -10,9 +10,6 @@ router = APIRouter()
 
 @router.get("/metrics/gpu/utilization", tags=["gpu"])
 async def get_gpu_utilization_metrics():
-    """
-    Queries Prometheus for the current GPU usage system metric.
-    """
     return await handle_api_response(
         get_and_extract_all_metrics,
         get_config("PROMETHEUS_URL"),
@@ -22,9 +19,6 @@ async def get_gpu_utilization_metrics():
 
 @router.get("/metrics/gpu/temperature", tags=["gpu"])
 async def get_gpu_temperature_metrics():
-    """
-    Queries Prometheus for the current GPU temperature system metric.
-    """
     return await handle_api_response(
         get_and_extract_all_metrics,
         get_config("PROMETHEUS_URL"),
@@ -34,9 +28,6 @@ async def get_gpu_temperature_metrics():
 
 @router.get("/metrics/gpu/memory", tags=["gpu"])
 async def get_gpu_memory_metrics():
-    """
-    Queries Prometheus for the current GPU memory system metric.
-    """
     return await handle_api_response(
         gpu_memory_metrcis,
         get_config("PROMETHEUS_URL")
@@ -44,9 +35,6 @@ async def get_gpu_memory_metrics():
 
 @router.get("/usage/gpu", tags=["gpu"])
 async def get_gpu_total_usage():
-    """
-    Queries Prometheus for the current GPU usage system metric.
-    """
     return await handle_api_response(
         gpu_total_usage,
         get_config("PROMETHEUS_URL")
@@ -54,18 +42,12 @@ async def get_gpu_total_usage():
 
 @router.get("/usage/gpu/memory", tags=["gpu"])
 async def get_gpu_memory_usage():
-    """
-    Queries Prometheus for the current GPU memory system metric.
-    """
     return await handle_api_response(
         gpu_memory_usage,
         get_config("PROMETHEUS_URL")
     )
 
 async def gpu_memory_metrcis(prometheus_url: str) -> dict:
-    """
-    Queries Prometheus for the current GPU memory system metric.
-    """
     return {
         "free": await get_and_extract_all_metrics(
             prometheus_url,
@@ -85,9 +67,6 @@ async def gpu_memory_metrcis(prometheus_url: str) -> dict:
     }
 
 async def gpu_total_usage(prometheus_url: str) -> str:
-    """
-    Queries Prometheus for the current GPU usage system metric.
-    """
     promql_query = 'nvidia_smi_utilization_gpu'
     response = await get_prometheus_metrics(prometheus_url, promql_query)
     return str(mean(
@@ -96,9 +75,6 @@ async def gpu_total_usage(prometheus_url: str) -> str:
     ))
 
 async def gpu_memory_usage(prometheus_url: str) -> str:
-    """
-    Queries Prometheus for the current GPU memory system metric.
-    """
     promql_query = 'nvidia_smi_utilization_memory'
     response = await get_prometheus_metrics(prometheus_url, promql_query)
     return str(mean(
