@@ -30,7 +30,7 @@ async def async_http_request(url: str, method: str = "GET", json: dict = None, *
 
 async def handle_api_response(api_func: callable, *args, **kwargs) -> JSONResponse:
     """
-    Handles the API response by calling the provided asynchronous function and returning a standardized JSON response.
+    Handles the API response by calling the provided async function and returning a JSON response.
     """
     try:
         data = await api_func(*args, **kwargs)

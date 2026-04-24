@@ -82,7 +82,7 @@ async def get_disks_usage():
     return await handle_api_response(
         get_and_extract_all_metrics,
         get_config("PROMETHEUS_URL"),
-        f"disk_used_percent",
+        "disk_used_percent",
         "device"
     )
 
@@ -116,5 +116,5 @@ async def all_disk_metric(
 
     for key, value in results.items():
         results[key] = str(float(value) / DISK_CONVERSION[format])
-    
+
     return results
