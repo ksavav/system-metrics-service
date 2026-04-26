@@ -2,9 +2,9 @@ from statistics import mean
 
 from fastapi import APIRouter
 
-from utils.prometheus import get_and_extract_all_metrics, get_and_extract_metric
 from utils.async_http import handle_api_response
 from utils.config import get_config
+from utils.prometheus import get_and_extract_all_metrics, get_and_extract_metric
 
 router = APIRouter()
 
