@@ -1,10 +1,10 @@
 #!/bin/sh
 
-INTERVAL="4"
-NPU_BASE_PATH="/tmp/accel" # /sys/class/accel
+INTERVAL=$(($(echo -n $INTERVAL | head -c -1)-1))
+NPU_BASE_PATH=$NPU_BASE_PATH
 
 if [ ! -d "$NPU_BASE_PATH" ] || ! ls $NPU_BASE_PATH/accel* >/dev/null 2>&1; then
-    printf "[{\"accel_id\":\"none\",\"npu_util\":0.00,\"status\":\"not_found\"}]\n"
+    printf "[{\"accel_id\":\"none\",\"percent\":0.00,\"status\":\"not_found\"}]\n"
     exit 0
 fi
 
@@ -44,7 +44,7 @@ echo "$PREV_DATA" | while read -r P_ID P_TIME P_BUSY; do
         printf ","
     fi
 
-    printf "{\"accel_id\":\"%s\",\"npu_util\":%s}" "$P_ID" "$UTIL"
+    printf "{\"accel_id\":\"%s\",\"percent\":%s}" "$P_ID" "$UTIL"
 done
 
 printf "]\n"
