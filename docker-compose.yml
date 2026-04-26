@@ -4,6 +4,8 @@ services:
     container_name: telegraf
     restart: unless-stopped
     environment:
+      - INTERVAL=${INTERVAL}
+      - NPU_BASE_PATH=${NPU_BASE_PATH}
       - http_proxy=${http_proxy}
       - https_proxy=${https_proxy}
       - no_proxy=${no_proxy},otel-collector,prometheus,system-metrics-service
@@ -11,6 +13,7 @@ services:
       - ${TELEGRAF_CONFIG_PATH}:/etc/telegraf/telegraf.conf:ro
       - /var/run/utmp:/var/run/utmp:ro
       - /:/rootfs:ro
+      - ./scripts:/scripts
     networks:
       - metrics_net
     depends_on:

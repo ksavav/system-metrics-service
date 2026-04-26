@@ -41,7 +41,7 @@ async def get_and_extract_metric(
     response = await get_prometheus_metrics(prometheus_url, promql_query)
     return extract_metric_value(response, metric_key, metric_name)
 
-async def get_and_extract_all_metrics(prometheus_url: str, promql_query: str, key: str) -> str:
+async def get_and_extract_all_metrics(prometheus_url: str, promql_query: str, key: str) -> dict:
     """
     Combines the process of querying Prometheus and extracting all metric values for a specific key.
     """
