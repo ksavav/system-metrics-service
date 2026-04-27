@@ -33,3 +33,8 @@ lint.extend-select = [
     "BLE",
     "FAST",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
