@@ -16,10 +16,10 @@ class Pid:
 
 
 @dataclass
-class Engine:
-    engine_name: str
-    curr_metric: list[str] = field(default_factory=list)
-    prev_metric: list[str] = field(default_factory=list)
+class Client:
+    client_id: str
+    curr_metrics: dict[str] = field(default_factory=dict)
+    prev_metrics: dict[str] = field(default_factory=dict)
 
 
 @dataclass
@@ -27,14 +27,12 @@ class Gpu:
     card: str
     render: str
     driver: str
-    engines: list[Engine] = field(default_factory=list)
+    clients: dict[Client] = field(default_factory=dict)
 
-
-GPUS_LIST = defaultdict(str)
-INTERVAL = 5
 
 def map_render_to_card():
     drm_path = Path("/sys/class/drm")
+    gpus_list = defaultdict(str)
     gpu_groups = defaultdict(list)
 
     if not drm_path.exists():
@@ -53,11 +51,12 @@ def map_render_to_card():
         render = next((n for n in nodes if n.startswith('render')), None)
 
         if card is not None and render is not None:
-            GPUS_LIST[render] = Gpu(
+            gpus_list[render] = Gpu(
                 card=card,
                 render=render,
                 driver=get_gpu_driver(card)
             )
+    return gpus_list
 
 def get_gpu_driver(card: str) -> str:
     return Path(f"/sys/class/drm/{card}/device/driver").readlink().name
@@ -75,44 +74,100 @@ def get_gpu_pids() -> list[Pid]:
         Pid(*row.split()) for row in pids_list if row.split()[1].rstrip('u').isdigit()
     ]
 
-def get_drm_data(pid: Pid) -> list[Engine]:
-    target_gpu = GPUS_LIST[pid.render]
+def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
+    target_gpu = gpus_list[pid.render]
+    drm_data = defaultdict(str)
+    client_id = None
 
     with Path.open(f"/proc/{pid.pid}/fdinfo/{pid.fd}") as f:
         lines = f.readlines()
 
     for line in lines:
-        if line.startswith("drm-"):
-            name, value, *_ = line.strip().split()
-            if target_gpu.engines is not None:
-                engine = next((e for e in target_gpu.engines if e.engine_name == name), None)
-                if engine is not None:
-                    engine.curr_metric.append(value)
-                else:
-                    new_engine = Engine(engine_name=name, curr_metric=[value])
-                    target_gpu.engines.append(new_engine)
+        name, value, *_ = line.strip().split()
+        name = name.rstrip(':')
 
-def calculate_gpu_metrics():
-    # Logic to calculate usage and memory (cycles and ns)
-    pass
+        if name == "drm-client-id":
+            client_id = value
+            continue
 
-def monitor_gpu_metrics():
+        if value.isdigit():
+            drm_data[name] = value
+
+    client = next((client for id, client in target_gpu.clients.items() if id == client_id), None)
+
+    if client is not None:
+        client.curr_metrics = drm_data
+    else:
+        client = Client(
+            client_id=client_id,
+            curr_metrics=drm_data,
+            prev_metrics=None
+        )
+
+    gpus_list[pid.render].clients[client_id] = client
+    
+    return gpus_list
+
+def shift_data(gpus_list: dict) -> dict:
+    for render, drm_data in gpus_list.items():
+        if not drm_data:
+            continue
+
+        for client_id, data in drm_data.clients.items():
+            data.prev_metrics = data.curr_metrics
+            data.curr_metrics = defaultdict(str)
+            gpus_list[render].clients[client_id] = data
+
+    return gpus_list
+
+
+def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
+    interval_ns = interval * 1_000_000_000
+    result_metrics = defaultdict(str)
+
+    for render, gpu_data in gpus_list.items():
+        result_metrics[render] = defaultdict(str)
+        result_metrics["total-gpu-util"] = 0
+        result_metrics["total-memory-util"] 
+
+        for _, client in gpu_data.clients.items():
+            curr = client.curr_metrics
+            prev = client.prev_metrics
+            
+            if not prev:
+                continue
+
+            for key, curr_val in curr.items():
+                if any(memory_val for memory_val in ["vram", "memory"] if memory_val in key):
+                    result_metrics[render][key] = result_metrics[render].get(key, 0) + int(curr_val)
+
+                elif key.startswith('drm-engine-'):
+                    if key in prev:
+                        engine_usage_percent = ((int(curr_val) - int(prev[key])) / interval_ns) * 100
+                        result_metrics[render][key] = result_metrics[render].get(key, 0) + float(engine_usage_percent)
+
+    return result_metrics
+
+def monitor_gpu_metrics(gpus_list: dict, interval: int):
+    shift_data(gpus_list)
+
     pids = get_gpu_pids()
+
     for pid in pids:
-        get_drm_data(pid)
+        gpus_list = get_drm_data(pid, gpus_list)
 
-    while True:
-        time.sleep(INTERVAL)
-        for engine in GPUS_LIST["renderD128"]:
-            engine.prev_metric = engine.curr_metric
-            engine.curr_metric = list()
 
-        pids = get_gpu_pids()
-        for pid in pids:
-            get_drm_data(pid)
+    calculated_metrics = calculate_gpu_metrics(gpus_list, interval)
 
-        calculate_gpu_metrics()
+    return gpus_list, calculated_metrics
 
+gpus_list = map_render_to_card()
+gpus_list, _ = monitor_gpu_metrics(gpus_list, 1)
+
+time.sleep(2)
+
+gpus_list, data = monitor_gpu_metrics(gpus_list, 1)
+print(data)
 
 # ns
 # drm-engine-
