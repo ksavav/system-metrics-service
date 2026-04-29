@@ -1,8 +1,9 @@
-import time
 import subprocess
-from pathlib import Path
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
+from pathlib import Path
+
 
 @dataclass
 class Pid:
@@ -36,7 +37,7 @@ def map_render_to_card():
     gpu_groups = defaultdict(list)
 
     if not drm_path.exists():
-        return
+        return None
 
     for node in drm_path.iterdir():
         if node.name.startswith(('card', 'renderD')):
@@ -58,8 +59,10 @@ def map_render_to_card():
             )
     return gpus_list
 
+
 def get_gpu_driver(card: str) -> str:
     return Path(f"/sys/class/drm/{card}/device/driver").readlink().name
+
 
 def get_gpu_pids() -> list[Pid]:
     output = subprocess.run(
@@ -73,6 +76,7 @@ def get_gpu_pids() -> list[Pid]:
     return [
         Pid(*row.split()) for row in pids_list if row.split()[1].rstrip('u').isdigit()
     ]
+
 
 def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
     target_gpu = gpus_list[pid.render]
@@ -105,8 +109,9 @@ def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
         )
 
     gpus_list[pid.render].clients[client_id] = client
-    
+
     return gpus_list
+
 
 def shift_data(gpus_list: dict) -> dict:
     for render, drm_data in gpus_list.items():
@@ -127,26 +132,53 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
 
     for render, gpu_data in gpus_list.items():
         result_metrics[render] = defaultdict(str)
-        result_metrics["total-gpu-util"] = 0
-        result_metrics["total-memory-util"] 
+        result_metrics[render]["total-gpu-util"] = 0
+        result_metrics[render]["total-memory-util"] = 0
+        result_metrics[render]["total-vram-util"] = 0
 
         for _, client in gpu_data.clients.items():
             curr = client.curr_metrics
             prev = client.prev_metrics
-            
+
             if not prev:
                 continue
 
             for key, curr_val in curr.items():
-                if any(memory_val for memory_val in ["vram", "memory"] if memory_val in key):
-                    result_metrics[render][key] = result_metrics[render].get(key, 0) + int(curr_val)
+                if "vram" in key:
+                    vram_util = result_metrics[render].get(key, 0) + int(curr_val)
+                    result_metrics[render][key] = vram_util
+                    result_metrics[render]["total-vram-util"] += vram_util
 
-                elif key.startswith('drm-engine-'):
+                elif "memory" in key:
+                    memory_util = result_metrics[render].get(key, 0) + int(curr_val)
+                    result_metrics[render][key] = memory_util
+                    result_metrics[render]["total-memory-util"] += memory_util
+
+                elif "drm-cycles" in key:
                     if key in prev:
-                        engine_usage_percent = ((int(curr_val) - int(prev[key])) / interval_ns) * 100
-                        result_metrics[render][key] = result_metrics[render].get(key, 0) + float(engine_usage_percent)
+                        engine = key.split("-")[-1]
+                        curr_total_cycles = next(
+                            c for k, c in curr.items() if "total" in k and engine in k
+                        )
+                        prev_total_cycles = next(
+                            c for k, c in prev.items() if "total" in k and engine in k
+                        )
+                        engine_usage_percent = ((int(curr_val) - int(prev[key])) / \
+                            (int(curr_total_cycles) - int(prev_total_cycles))) * 100
+                        result_metrics[render][key] = result_metrics[render].get(key, 0) + \
+                            float(engine_usage_percent)
+                        result_metrics[render]["total-gpu-util"] += engine_usage_percent
+
+                elif "drm-engine" in key:
+                    if key in prev:
+                        engine_usage_percent = ((int(curr_val) - int(prev[key])) / interval_ns) \
+                            * 100
+                        result_metrics[render][key] = result_metrics[render].get(key, 0) + \
+                            float(engine_usage_percent)
+                        result_metrics[render]["total-gpu-util"] += float(engine_usage_percent)
 
     return result_metrics
+
 
 def monitor_gpu_metrics(gpus_list: dict, interval: int):
     shift_data(gpus_list)
@@ -161,6 +193,7 @@ def monitor_gpu_metrics(gpus_list: dict, interval: int):
 
     return gpus_list, calculated_metrics
 
+
 gpus_list = map_render_to_card()
 gpus_list, _ = monitor_gpu_metrics(gpus_list, 1)
 
@@ -168,12 +201,3 @@ time.sleep(2)
 
 gpus_list, data = monitor_gpu_metrics(gpus_list, 1)
 print(data)
-
-# ns
-# drm-engine-
-# (engine time now - engine time then) / (global time now - global time then) * 100
-
-# cycles
-# drm-total-cycles-
-# drm-cycles-
-# (active cycles now - active cycles then) / (total cycles now - total cycles then) * 100

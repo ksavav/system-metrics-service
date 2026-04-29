@@ -5,11 +5,11 @@ from prometheus_client import Gauge, make_asgi_app
 
 from routers import cpu, disk, gpu, memory, npu
 from utils.config import get_config
-from utils.drm_gpu import monitor_gpu_metrics, map_render_to_card
-
+from utils.drm_gpu import map_render_to_card, monitor_gpu_metrics
+from utils.logger import log
 
 DRM_METRICS = Gauge(
-    'metric_name', 
+    'metric_name',
     'description',
     ['status']
 )
@@ -23,8 +23,8 @@ async def gather_drm_metric():
             drm_values, calculated_gpu_metrics = monitor_gpu_metrics(gpus_list, interval)
             DRM_METRICS.labels(status='success').set(drm_values)
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            log.error("Error during getting DRM data", exc_info=True)
             DRM_METRICS.labels(status='error').set(0)
 
         await asyncio.sleep(interval)

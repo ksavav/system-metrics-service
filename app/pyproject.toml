@@ -35,6 +35,9 @@ lint.extend-select = [
     "FAST",
 ]
 
+[tool.ruff.lint.extend-per-file-ignores]
+"app.py" = ['BLE001']
+
 [dependency-groups]
 dev = [
     "ruff>=0.15.12",
