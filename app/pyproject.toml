@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.0",
     "httpx>=0.28.1",
+    "prometheus-client>=0.25.0",
     "python-dotenv>=1.2.2",
     "uvicorn>=0.44.0",
 ]
@@ -32,4 +33,12 @@ lint.extend-select = [
     "NPY",
     "BLE",
     "FAST",
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"app.py" = ['BLE001']
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
 ]
