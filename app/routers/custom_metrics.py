@@ -18,22 +18,23 @@ async def gather_drm_metric():
 
     while True:
         try:
-            drm_values, calculated_gpu_metrics = monitor_gpu_metrics(gpus_list, interval)
+            calculated_gpu_metrics = monitor_gpu_metrics(gpus_list, interval)
             print(calculated_gpu_metrics)
             for render in calculated_gpu_metrics:
                 for k, v in calculated_gpu_metrics[render].items():
-                    if not GAUGES or k not in GAUGES:
+                    if k not in GAUGES:
                         GAUGES[k] = Gauge(
                             name=k,
                             documentation="",
                             labelnames=["status", "device"]
-                        ).labels(status='success', device=render).set(v)
+                        )
+                        GAUGES[k].labels(status='success', device=render).set(v)
                     else:
                         GAUGES[k].labels(status='success', device=render).set(v)
         except Exception as e:
             log.error(f"Error during getting DRM data: {e}")
             for g in GAUGES:
-                GAUGES[k].labels(status='error', device=None).set(0)
+                GAUGES[g].labels(status='error', device=None).set(0)
 
         await asyncio.sleep(interval)
 

@@ -18,8 +18,8 @@ class Pid:
 @dataclass
 class Client:
     client_id: str
-    curr_metrics: dict[str] = field(default_factory=dict)
-    prev_metrics: dict[str] = field(default_factory=dict)
+    curr_metrics: dict[str, str] = field(default_factory=dict)
+    prev_metrics: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Gpu:
     card: str
     render: str
     driver: str
-    clients: dict[Client] = field(default_factory=dict)
+    clients: dict[str, Client] = field(default_factory=dict)
 
 
 def map_render_to_card():
@@ -51,7 +51,7 @@ def map_render_to_card():
         render = next((n for n in nodes if n.startswith('render')), None)
 
         if card is not None and render is not None:
-            gpus_list[render] = Gpu(
+            gpus_list[card] = Gpu(
                 card=card,
                 render=render,
                 driver=get_gpu_driver(card)
@@ -78,8 +78,8 @@ def get_gpu_pids() -> list[Pid]:
 
 
 def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
-    # TODO: map render to card
-    target_gpu = gpus_list[pid.device]
+    target_key = next((k for k, g in gpus_list.items() if pid.device in (g.card, g.render)), None)
+    target_gpu = gpus_list[target_key]
     drm_data = defaultdict(str)
     client_id = None
 
@@ -108,20 +108,20 @@ def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
             prev_metrics=None
         )
 
-    gpus_list[pid.device].clients[client_id] = client
+    gpus_list[target_key].clients[client_id] = client
 
     return gpus_list
 
 
 def shift_data(gpus_list: dict) -> dict:
-    for render, drm_data in gpus_list.items():
+    for device, drm_data in gpus_list.items():
         if not drm_data:
             continue
 
         for client_id, data in drm_data.clients.items():
             data.prev_metrics = data.curr_metrics
             data.curr_metrics = defaultdict(str)
-            gpus_list[render].clients[client_id] = data
+            gpus_list[device].clients[client_id] = data
 
     return gpus_list
 
@@ -130,10 +130,10 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
     interval_ns = interval * 1_000_000_000
     result_metrics = defaultdict(str)
 
-    for render, gpu_data in gpus_list.items():
-        result_metrics[render] = defaultdict(str)
-        result_metrics[render]["total-gpu-util"] = 0
-        result_metrics[render]["total-memory-util"] = 0
+    for device, gpu_data in gpus_list.items():
+        result_metrics[device] = defaultdict(str)
+        result_metrics[device]["total-gpu-util"] = 0
+        result_metrics[device]["total-memory-util"] = 0
 
         for _, client in gpu_data.clients.items():
             curr = client.curr_metrics
@@ -144,13 +144,13 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
 
             for key, curr_val in curr.items():
                 if "vram" in key:
-                    vram_util = result_metrics[render].get(key, 0) + int(curr_val)
-                    result_metrics[render][key] = vram_util
+                    vram_util = result_metrics[device].get(key, 0) + int(curr_val)
+                    result_metrics[device][key] = vram_util
 
                 elif "memory" in key and "vram" not in key:
-                    memory_util = result_metrics[render].get(key, 0) + int(curr_val)
-                    result_metrics[render][key] = memory_util
-                    result_metrics[render]["total-memory-util"] += memory_util
+                    memory_util = result_metrics[device].get(key, 0) + int(curr_val)
+                    result_metrics[device][key] = memory_util
+                    result_metrics[device]["total-memory-util"] += memory_util
 
                 elif "drm-cycles" in key:
                     if key in prev:
@@ -163,17 +163,17 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
                         )
                         engine_usage_percent = ((int(curr_val) - int(prev[key])) / \
                             (int(curr_total_cycles) - int(prev_total_cycles))) * 100
-                        result_metrics[render][key] = result_metrics[render].get(key, 0) + \
+                        result_metrics[device][key] = result_metrics[device].get(key, 0) + \
                             float(engine_usage_percent)
-                        result_metrics[render]["total-gpu-util"] += engine_usage_percent
+                        result_metrics[device]["total-gpu-util"] += engine_usage_percent
 
                 elif "drm-engine" in key:
                     if key in prev:
                         engine_usage_percent = ((int(curr_val) - int(prev[key])) / interval_ns) \
                             * 100
-                        result_metrics[render][key] = result_metrics[render].get(key, 0) + \
+                        result_metrics[device][key] = result_metrics[device].get(key, 0) + \
                             float(engine_usage_percent)
-                        result_metrics[render]["total-gpu-util"] += float(engine_usage_percent)
+                        result_metrics[device]["total-gpu-util"] += float(engine_usage_percent)
 
     return result_metrics
 
@@ -189,4 +189,4 @@ def monitor_gpu_metrics(gpus_list: dict, interval: int):
 
     calculated_metrics = calculate_gpu_metrics(gpus_list, interval)
 
-    return gpus_list, calculated_metrics
+    return calculated_metrics
