@@ -1,5 +1,4 @@
 import subprocess
-import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,11 +8,11 @@ from pathlib import Path
 class Pid:
     pid: str
     fd: str
-    render: str
+    device: str
 
     def __post_init__(self):
         self.fd = self.fd.rstrip('u')
-        self.render = self.render.split('/')[-1]
+        self.device = self.device.split('/')[-1]
 
 
 @dataclass
@@ -66,7 +65,7 @@ def get_gpu_driver(card: str) -> str:
 
 def get_gpu_pids() -> list[Pid]:
     output = subprocess.run(
-        "sudo lsof /dev/dri/render* | awk -F' ' '{print $2,$4,$9}'",
+        "lsof -nPl -d^mem | grep '/dev/dri' | awk -F' ' '{print $2,$4,$9}'",
         text=True,
         capture_output=True,
         shell=True
@@ -79,7 +78,8 @@ def get_gpu_pids() -> list[Pid]:
 
 
 def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
-    target_gpu = gpus_list[pid.render]
+    # TODO: map render to card
+    target_gpu = gpus_list[pid.device]
     drm_data = defaultdict(str)
     client_id = None
 
@@ -108,7 +108,7 @@ def get_drm_data(pid: Pid, gpus_list: dict) -> dict[str]:
             prev_metrics=None
         )
 
-    gpus_list[pid.render].clients[client_id] = client
+    gpus_list[pid.device].clients[client_id] = client
 
     return gpus_list
 
@@ -134,7 +134,6 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
         result_metrics[render] = defaultdict(str)
         result_metrics[render]["total-gpu-util"] = 0
         result_metrics[render]["total-memory-util"] = 0
-        result_metrics[render]["total-vram-util"] = 0
 
         for _, client in gpu_data.clients.items():
             curr = client.curr_metrics
@@ -147,9 +146,8 @@ def calculate_gpu_metrics(gpus_list: dict, interval: int) -> dict[str]:
                 if "vram" in key:
                     vram_util = result_metrics[render].get(key, 0) + int(curr_val)
                     result_metrics[render][key] = vram_util
-                    result_metrics[render]["total-vram-util"] += vram_util
 
-                elif "memory" in key:
+                elif "memory" in key and "vram" not in key:
                     memory_util = result_metrics[render].get(key, 0) + int(curr_val)
                     result_metrics[render][key] = memory_util
                     result_metrics[render]["total-memory-util"] += memory_util
@@ -192,12 +190,3 @@ def monitor_gpu_metrics(gpus_list: dict, interval: int):
     calculated_metrics = calculate_gpu_metrics(gpus_list, interval)
 
     return gpus_list, calculated_metrics
-
-
-gpus_list = map_render_to_card()
-gpus_list, _ = monitor_gpu_metrics(gpus_list, 1)
-
-time.sleep(2)
-
-gpus_list, data = monitor_gpu_metrics(gpus_list, 1)
-print(data)

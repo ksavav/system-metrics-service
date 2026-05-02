@@ -61,10 +61,15 @@ services:
       dockerfile: Dockerfile
     container_name: system-metrics-service
     restart: unless-stopped
+    pid: "host"
+    privileged: true
     environment:
       - http_proxy=${http_proxy}
       - https_proxy=${https_proxy}
       - no_proxy=${no_proxy},otel-collector,prometheus,telegraf
+    volumes:
+      - /sys/class/drm:/sys/class/drm:ro
+      - /sys/class/hwmon:/sys/class/hwmon:ro
     env_file:
       - .env
     ports:

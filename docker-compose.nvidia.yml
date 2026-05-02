@@ -9,6 +9,7 @@ services:
     volumes:
       - /usr/bin/nvidia-smi:/usr/bin/nvidia-smi:ro
       - /usr/lib/x86_64-linux-gnu/nvidia:/usr/lib/x86_64-linux-gnu/nvidia:ro
+      - ./configs/nvidia.conf:figs/:/etc/telegraf/telegraf.conf:ro
     deploy:
       resources:
         reservations:

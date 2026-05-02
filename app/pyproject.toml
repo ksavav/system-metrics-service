@@ -37,6 +37,7 @@ lint.extend-select = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 "app.py" = ['BLE001']
+"custom_metrics.py" = ['BLE001']
 
 [dependency-groups]
 dev = [

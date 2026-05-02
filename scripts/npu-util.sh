@@ -1,6 +1,6 @@
 #!/bin/sh
 
-INTERVAL=$(($(echo -n $INTERVAL | head -c -1)-1))
+INTERVAL=$(echo "$INTERVAL - 0.5" | bc)
 NPU_BASE_PATH=$NPU_BASE_PATH
 
 if [ ! -d "$NPU_BASE_PATH" ] || ! ls $NPU_BASE_PATH/accel* >/dev/null 2>&1; then

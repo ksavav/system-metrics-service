@@ -1,4 +1,4 @@
-FROM python:3.12-slim-trixie
+FROM python:3.12-slim-bookworm
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -7,6 +7,7 @@ RUN apt-get update && \
     build-essential \
     libgl1 \
     pciutils \
+    lsof \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

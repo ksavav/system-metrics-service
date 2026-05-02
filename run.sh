@@ -2,6 +2,7 @@
 source .env
 
 sed -i -r "/scrape_interval/ s/([0-9]+)/$INTERVAL/" ./configs/prometheus.yml
+# sed -i -r "/scrape_interval/ s/([0-9]+)/$INTERVAL/" ./configs/otel-collector-config.yaml
 sed -i -r "/interval/ s/([0-9]+)/$INTERVAL/" ./configs/telegraf.conf
 
 
