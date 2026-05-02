@@ -187,6 +187,4 @@ def monitor_gpu_metrics(gpus_list: dict, interval: int):
         gpus_list = get_drm_data(pid, gpus_list)
 
 
-    calculated_metrics = calculate_gpu_metrics(gpus_list, interval)
-
-    return calculated_metrics
+    return calculate_gpu_metrics(gpus_list, interval)
